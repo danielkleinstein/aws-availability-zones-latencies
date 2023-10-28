@@ -45,6 +45,7 @@ def poll_sqs_queue() -> List[str]:
             )
 
             azs = message['Body'].split(',')
+            break
 
     return azs
 
@@ -52,6 +53,5 @@ def poll_sqs_queue() -> List[str]:
 if __name__ == '__main__':
     azs = poll_sqs_queue()
 
-    # Write azs to "test.txt"
     with open('/test.txt', 'w', encoding='utf-8') as test_file:
         test_file.write('\n'.join(azs))

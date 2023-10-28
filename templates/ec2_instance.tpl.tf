@@ -19,10 +19,11 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
 
               chmod 777 /sqs-queue /dynamodb-table
               sudo apt update -y
-              sudo apt install iperf3 curl unzip -y
+              sudo apt install iperf3 python3-pip -y
 
-              # Install AWS CLI
-              su - ubuntu -c "curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip' && unzip awscliv2.zip && sudo ./aws/install || true"
+              su - ubuntu -c "pip3 install boto3"
+              su - ubuntu -c "git clone https://github.com/danielkleinstein/aws-availability-zones-latencies.git repo"
+              su - ubuntu -c "cd repo && python3 user-data.py"
               EOF
 
   root_block_device {
