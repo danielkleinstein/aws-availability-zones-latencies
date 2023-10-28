@@ -59,7 +59,7 @@ def test_network_latency(hostname: str) -> Decimal:
 def write_to_dynamodb(az_name: str, network_latency: Decimal, bandwidth: Decimal) -> None:
     """Write to DynamoDB."""
     dynamodb = boto3.resource('dynamodb',
-                              region_name='us-east-1'  # Arbitrary - the table is in the same region as the instance
+                              region_name='us-east-1'
                               )
 
     table = dynamodb.Table(WRITE_TABLE_NAME)

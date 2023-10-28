@@ -61,6 +61,12 @@ class TerraformRegionData:
     REGION_ALIAS_REPLACE_ME: str
     REGION_AMI_REPLACE_ME: str
     REGION_AZ_REPLACE_ME: str
+    INSTANCE_TYPE_REPLACE_ME: str
+
+    def __post_init__(self) -> None:
+        """Post init - us-east-1e doesn't have t3.micro available."""
+        if self.REGION_AZ_REPLACE_ME == 'us-east-1e':
+            self.INSTANCE_TYPE_REPLACE_ME = 't2.micro'
 
 
 class TerraformTemplateType(Enum):
@@ -118,7 +124,7 @@ def run_terraform() -> None:
 
     sys.stdout.write('Terraform init successful.\n')
 
-    with subprocess.Popen(['terraform', 'apply', '-auto-approve'],  # nosec (remove bandit warning)
+    with subprocess.Popen(['terraform', 'apply', '-auto-approve', '-parallelism=50'],  # nosec (remove bandit warning)
                           cwd='tf', stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         _, stderr = process.communicate()
         if process.returncode != 0:
@@ -130,7 +136,7 @@ def run_terraform() -> None:
 
 def destroy_terraform() -> None:
     """Run terraform."""
-    with subprocess.Popen(['terraform', 'destroy', '-auto-approve'],  # nosec (remove bandit warning)
+    with subprocess.Popen(['terraform', 'destroy', '-auto-approve', '-parallelism=50'],  # nosec (remove bandit warning)
                           cwd='tf', stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         _, stderr = process.communicate()
         if process.returncode != 0:
@@ -157,7 +163,8 @@ def main() -> None:
             terraform_data[region.name].append(TerraformRegionData(region.name,
                                                                    get_region_alias(region.name),
                                                                    az.ubuntu_ami,
-                                                                   az.name))
+                                                                   az.name,
+                                                                   't3.micro'))
 
     templates = [TerraformTemplate('ec2_instance', TerraformTemplateType.PER_AZ),
                  TerraformTemplate('ec2_instance_key_pair', TerraformTemplateType.PER_REGION),

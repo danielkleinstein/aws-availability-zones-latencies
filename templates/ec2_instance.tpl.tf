@@ -1,6 +1,6 @@
 resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
   provider          = aws.REGION_ALIAS_REPLACE_ME
-  instance_type     = "t3.micro"
+  instance_type     = "INSTANCE_TYPE_REPLACE_ME" # Necessary because "t3.micro" is unavailable in us-east-1e
   ami               = "REGION_AMI_REPLACE_ME"
   availability_zone = "REGION_AZ_REPLACE_ME"
   key_name          = aws_key_pair.development_server_key_pair_REGION_ALIAS_REPLACE_ME.key_name

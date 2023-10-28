@@ -41,7 +41,7 @@ def get_terraform_output(output_name: str) -> str:
         return stdout.decode('utf-8').strip().strip('"')
 
 
-def write_azs_to_dynamodb(region: AwsRegion) -> str:
+def write_azs_to_dynamodb(region: AwsRegion) -> None:
     """Write AZs to DynamoDB."""
     az_pairs = region.pairs()
 
@@ -86,7 +86,7 @@ def write_azs_to_dynamodb(region: AwsRegion) -> str:
     first_az = keys[0]
     # Trigger "Go" command for the first AZ
     sqs = boto3.client('sqs',
-                       region_name='us-east-1'
+                       region_name=region.name
                        )
 
     sqs.send_message(
