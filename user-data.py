@@ -31,7 +31,8 @@ def write_to_dynamodb(az_name: str, network_latency: float, bandwidth: float) ->
     table = dynamodb.Table(TABLE_NAME)
 
     item = {
-        'availability_zone': az_name,
+        'availability_zone_from': AZ_NAME,
+        'availability_zone_to': az_name,
         'network_latency_ms': network_latency,
         'bandwidth_gbps': bandwidth,
     }
