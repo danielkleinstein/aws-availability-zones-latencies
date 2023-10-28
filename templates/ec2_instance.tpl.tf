@@ -15,7 +15,8 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
   user_data = <<-EOF
               #!/bin/bash
               echo "${aws_sqs_queue.sqs_queue_REGION_AZ_REPLACE_ME.url}" > /sqs-queue
-              echo "${aws_dynamodb_table.ec2_instance_metrics.name}" > /dynamodb-table
+              echo "${aws_dynamodb_table.ec2_instance_metrics.name}" > /dynamodb-write-table
+              echo "${aws_dynamodb_table.ec2_instance_instructions.name}" > /dynamodb-read-table
               echo "REGION_NAME_REPLACE_ME" > /region
               echo "REGION_AZ_REPLACE_ME" > /az
 

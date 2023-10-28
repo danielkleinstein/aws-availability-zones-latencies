@@ -8,29 +8,9 @@ import subprocess  # nosec (remove bandit warning)
 import sys
 from dataclasses import dataclass
 from enum import Enum
-from itertools import combinations
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
-
-@dataclass
-class AwsAZ:
-    """Represents an AWS availability zone."""
-
-    name: str
-    id: str
-    ubuntu_ami: str
-
-
-@dataclass
-class AwsRegion:
-    """Represents an AWS region."""
-
-    name: str
-    azs: List[AwsAZ]
-
-    def pairs(self) -> List[Tuple[AwsAZ, AwsAZ]]:
-        """Return a list of all AZ pairs in this region."""
-        return list(combinations(self.azs, 2))
+from synchronization import write_azs_to_dynamodb, AwsAZ, AwsRegion
 
 
 def get_ubuntu_ami(regional_ec2_client: boto3.client) -> str:
@@ -185,11 +165,12 @@ def main() -> None:
                  TerraformTemplate('ec2_instance_key_pair', TerraformTemplateType.PER_REGION),
                  TerraformTemplate('ec2_instance_role', TerraformTemplateType.GLOBAL),
                  TerraformTemplate('dynamodb_table', TerraformTemplateType.GLOBAL),
+                 TerraformTemplate('output_dynamodb_table', TerraformTemplateType.GLOBAL),
                  TerraformTemplate('provider', TerraformTemplateType.PER_REGION),
                  TerraformTemplate('security_group', TerraformTemplateType.PER_REGION),
                  TerraformTemplate('sqs_queue', TerraformTemplateType.PER_AZ),
                  TerraformTemplate('output_ec2_instance', TerraformTemplateType.PER_AZ),
-                 TerraformTemplate('output_sqs', TerraformTemplateType.PER_REGION)]
+                 TerraformTemplate('output_sqs', TerraformTemplateType.PER_AZ)]
 
     if os.path.exists("tf") and os.path.isdir("tf"):
         destroy_terraform()
@@ -212,6 +193,9 @@ def main() -> None:
                 generate_terraform_file(original_terraform_template, None, template)
 
     run_terraform()
+
+    for region in regions:
+        write_azs_to_dynamodb(region)
 
 
 if __name__ == "__main__":

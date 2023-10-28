@@ -27,24 +27,6 @@ with open('/az', encoding='utf-8') as region_file:
     AZ_NAME = region_file.read().strip()
 
 
-def write_to_dynamodb(az_name: str, network_latency: Decimal, bandwidth: Decimal) -> None:
-    """Write to DynamoDB."""
-    dynamodb = boto3.resource('dynamodb',
-                              region_name=REGION_NAME  # Arbitrary - the table is in the same region as the instance
-                              )
-
-    table = dynamodb.Table(WRITE_TABLE_NAME)
-
-    item = {
-        'availability_zone_from': AZ_NAME,
-        'availability_zone_to': az_name,
-        'network_latency_ms': network_latency,
-        'bandwidth_gbps': bandwidth,
-    }
-
-    table.put_item(Item=item)
-
-
 def test_bandwidth(server_ip: str, port: int = 5201) -> Decimal:
     """Test network bandwidth to a host."""
     command = ["iperf3", "-c", server_ip, "-p", str(port), "-J"]
@@ -72,6 +54,24 @@ def test_network_latency(hostname: str) -> Decimal:
     avg_time = sum(map(Decimal, time_values)) / Decimal(len(time_values))
 
     return avg_time
+
+
+def write_to_dynamodb(az_name: str, network_latency: Decimal, bandwidth: Decimal) -> None:
+    """Write to DynamoDB."""
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=REGION_NAME  # Arbitrary - the table is in the same region as the instance
+                              )
+
+    table = dynamodb.Table(WRITE_TABLE_NAME)
+
+    item = {
+        'availability_zone_from': AZ_NAME,
+        'availability_zone_to': az_name,
+        'network_latency_ms': network_latency,
+        'bandwidth_gbps': bandwidth,
+    }
+
+    table.put_item(Item=item)
 
 
 def read_from_dynamodb_table() -> Tuple[List[str], List[str], str]:
