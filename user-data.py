@@ -1,6 +1,8 @@
 """Template script to be used as user-data for EC2 instances."""
 
 import boto3
+import subprocess
+import re
 from typing import List
 
 
@@ -12,6 +14,10 @@ with open('/sqs-queue', encoding='utf-8') as sqs_queue_file:
 with open('/dynamodb-table', encoding='utf-8') as dynamodb_table_file:
     TABLE_NAME = dynamodb_table_file.read().strip()
 
+with open('/region', encoding='utf-8') as region_file:
+    REGION_NAME = region_file.read().strip()
+
+
 # def process_az(az):
 #     response = table.get_item(
 #         Key={
@@ -22,10 +28,24 @@ with open('/dynamodb-table', encoding='utf-8') as dynamodb_table_file:
 #     ip = response['Item']['IP']
 
 
+def test_network_latency(hostname: str) -> float:
+    # Run the ping command
+    command = ["ping", "-c", "100", "-i", "0.1", hostname]
+    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+
+    # Extract time values using regular expression
+    time_values = re.findall(r"time=([\d.]+)", result.stdout)
+
+    # Convert extracted time values to float and calculate the average
+    avg_time = sum(map(float, time_values)) / len(time_values)
+
+    return avg_time
+
+
 def poll_sqs_queue() -> List[str]:
     """Poll the SQS queue for messages."""
     sqs = boto3.client('sqs',
-                       region_name="us-east-1"  # Arbitrary - the queue is in the same region as the instance
+                       region_name=REGION_NAME  # Arbitrary - the queue is in the same region as the instance
                        )
 
     while True:
@@ -45,14 +65,15 @@ def poll_sqs_queue() -> List[str]:
                 ReceiptHandle=receipt_handle
             )
 
-            azs = message['Body'].split(',')
+            az_ips = message['Body'].split(',')
             break
 
-    return azs
+    return az_ips
 
 
 if __name__ == '__main__':
-    azs = poll_sqs_queue()
+    while True:
+        az_ips = poll_sqs_queue()
 
-    with open('/test.txt', 'w', encoding='utf-8') as test_file:
-        test_file.write('\n'.join(azs))
+        for ip in az_ips:
+            print(test_network_latency(ip))

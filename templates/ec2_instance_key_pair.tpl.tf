@@ -18,5 +18,8 @@ resource "aws_key_pair" "development_server_key_pair_REGION_ALIAS_REPLACE_ME" {
   public_key = tls_private_key.development_server_private_key_REGION_ALIAS_REPLACE_ME.public_key_openssh
 
   provider = aws.REGION_ALIAS_REPLACE_ME
-}
 
+  provisioner "local-exec" {
+    command = "chmod 400 development_server_key_REGION_ALIAS_REPLACE_ME.pem"
+  }
+}
