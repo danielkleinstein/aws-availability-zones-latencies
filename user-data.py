@@ -85,5 +85,6 @@ if __name__ == '__main__':
         az_ips = poll_sqs_queue()
 
         for ip in az_ips:
+            print("Testing network latency and bandwidth to", ip)
             print(test_network_latency(ip))
             print(test_bandwidth(ip))
