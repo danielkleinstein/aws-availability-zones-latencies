@@ -1,11 +1,15 @@
 """Manages cross-AZ latency testing."""
 
 import boto3
+import pickle  # nosec (remove bandit warning)
 import os
+import shutil
+import subprocess  # nosec (remove bandit warning)
+import sys
 from dataclasses import dataclass
 from enum import Enum
 from itertools import combinations
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -84,6 +88,7 @@ class TerraformTemplateType(Enum):
 
     PER_AZ = 1
     PER_REGION = 2
+    GLOBAL = 3
 
 
 @dataclass
@@ -100,24 +105,72 @@ class TerraformTemplate:
 
 
 def generate_terraform_file(template_str: str,
-                            data: TerraformRegionData,
+                            data: Optional[TerraformRegionData],
                             terraform_template: TerraformTemplate) -> None:
     """Generate a Terraform file from the given template and data."""
     template = template_str
-    for param in data.__dict__:
-        template = template.replace(param, str(getattr(data, param)))
+    if data:
+        for param in data.__dict__:
+            template = template.replace(param, str(getattr(data, param)))
 
-    prefix = data.REGION_AZ_REPLACE_ME if terraform_template.template_type == TerraformTemplateType.PER_AZ \
-        else data.REGION_NAME_REPLACE_ME
+    if terraform_template.template_type == TerraformTemplateType.PER_AZ:
+        assert data  # nosec (remove bandit warning)
+        prefix = data.REGION_AZ_REPLACE_ME
+    elif terraform_template.template_type == TerraformTemplateType.PER_REGION:
+        assert data  # nosec (remove bandit warning)
+        prefix = data.REGION_NAME_REPLACE_ME
+    else:
+        prefix = "global"
 
     with open(f'tf/{prefix}-{terraform_template.file_name.replace(".tpl", "")}', 'w', encoding='utf-8') \
             as terraform_file:
         terraform_file.write(template)
 
 
+def run_terraform() -> None:
+    """Run terraform."""
+    with subprocess.Popen(['terraform', 'init'],  # nosec (remove bandit warning)
+                          cwd="tf", stdout=subprocess.PIPE) as process:
+        _, stderr = process.communicate()
+        if process.returncode != 0:
+            sys.stderr.write(stderr.decode('utf-8'))
+            raise ValueError('terraform init failed in tf.')
+
+    sys.stdout.write("Terraform init successful.\n")
+
+    with subprocess.Popen(['terraform', 'apply', '-auto-approve'],  # nosec (remove bandit warning)
+                          cwd="tf", stdout=subprocess.PIPE) as process:
+        _, stderr = process.communicate()
+        if process.returncode != 0:
+            sys.stderr.write(stderr.decode('utf-8'))
+            raise ValueError('terraform apply -auto-approve failed in tf.')
+
+    sys.stdout.write("Terraform apply successful.\n")
+
+
+def destroy_terraform() -> None:
+    """Run terraform."""
+    with subprocess.Popen(['terraform', 'destroy', '-auto-approve'],  # nosec (remove bandit warning)
+                          cwd="tf", stdout=subprocess.PIPE) as process:
+        _, stderr = process.communicate()
+        if process.returncode != 0:
+            sys.stderr.write(stderr.decode('utf-8'))
+            raise ValueError('terraform destroy -auto-approve failed in tf.')
+
+    sys.stdout.write("Terraform destroy successful.\n")
+
+
 def main() -> None:
     """Run the main logic."""
-    regions = all_regions()
+    # regions = all_regions()
+
+    # with open("regions.pickle", "wb") as regions_pickle_file:
+    #     pickle.dump(regions, regions_pickle_file)
+
+    with open("regions.pickle", "rb") as regions_pickle_file:
+        regions: List[AwsRegion] = pickle.load(regions_pickle_file)  # nosec (remove bandit warning)
+
+    regions = regions[:1]
 
     terraform_data: Dict[str, List[TerraformRegionData]] = {}
     for region in regions:
@@ -130,13 +183,20 @@ def main() -> None:
 
     templates = [TerraformTemplate('ec2_instance', TerraformTemplateType.PER_AZ),
                  TerraformTemplate('ec2_instance_key_pair', TerraformTemplateType.PER_REGION),
+                 TerraformTemplate('ec2_instance_role', TerraformTemplateType.GLOBAL),
+                 TerraformTemplate('dynamodb_table', TerraformTemplateType.GLOBAL),
                  TerraformTemplate('provider', TerraformTemplateType.PER_REGION),
                  TerraformTemplate('security_group', TerraformTemplateType.PER_REGION),
-                 TerraformTemplate('sqs_queue', TerraformTemplateType.PER_REGION),
+                 TerraformTemplate('sqs_queue', TerraformTemplateType.PER_AZ),
                  TerraformTemplate('output_ec2_instance', TerraformTemplateType.PER_AZ),
                  TerraformTemplate('output_sqs', TerraformTemplateType.PER_REGION)]
 
+    if os.path.exists("tf") and os.path.isdir("tf"):
+        destroy_terraform()
+
+    shutil.rmtree("tf", ignore_errors=True)
     os.makedirs("tf", exist_ok=True)
+
     for template in templates:
         with open(f'templates/{template.file_name}', encoding='utf-8') as terraform_template_file:
             original_terraform_template = terraform_template_file.read()
@@ -148,6 +208,10 @@ def main() -> None:
                 for region_azs in terraform_data.values():
                     for az_data in region_azs:
                         generate_terraform_file(original_terraform_template, az_data, template)
+            elif template.template_type == TerraformTemplateType.GLOBAL:
+                generate_terraform_file(original_terraform_template, None, template)
+
+    run_terraform()
 
 
 if __name__ == "__main__":
