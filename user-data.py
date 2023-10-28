@@ -4,7 +4,7 @@ import boto3
 import json
 import subprocess
 import re
-from typing import List
+from typing import List, Tuple
 
 
 # dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
@@ -17,6 +17,26 @@ with open('/dynamodb-table', encoding='utf-8') as dynamodb_table_file:
 
 with open('/region', encoding='utf-8') as region_file:
     REGION_NAME = region_file.read().strip()
+
+with open('/az', encoding='utf-8') as region_file:
+    AZ_NAME = region_file.read().strip()
+
+
+def write_to_dynamodb(az_name: str, network_latency: float, bandwidth: float) -> None:
+    """Write to DynamoDB."""
+    dynamodb = boto3.resource('dynamodb',
+                              region_name=REGION_NAME  # Arbitrary - the table is in the same region as the instance
+                              )
+
+    table = dynamodb.Table(TABLE_NAME)
+
+    item = {
+        'availability_zone': az_name,
+        'network_latency_ms': network_latency,
+        'bandwidth_gbps': bandwidth,
+    }
+
+    table.put_item(Item=item)
 
 
 def test_bandwidth(server_ip: str, port: int = 5201) -> float:
@@ -51,7 +71,7 @@ def test_network_latency(hostname: str) -> float:
     return avg_time
 
 
-def poll_sqs_queue() -> List[str]:
+def poll_sqs_queue() -> Tuple[List[str], List[str]]:
     """Poll the SQS queue for messages."""
     sqs = boto3.client('sqs',
                        region_name=REGION_NAME  # Arbitrary - the queue is in the same region as the instance
@@ -74,17 +94,20 @@ def poll_sqs_queue() -> List[str]:
                 ReceiptHandle=receipt_handle
             )
 
-            az_ips = message['Body'].split(',')
+            azs = message['Body'].split(',')
+            pairs = [az.split(':') for az in azs]
+            ips, az_names = zip(*pairs)
             break
 
-    return az_ips
+    return (ips, az_names)
 
 
 if __name__ == '__main__':
     while True:
-        az_ips = poll_sqs_queue()
+        az_ips, az_names = poll_sqs_queue()
 
-        for ip in az_ips:
-            print("Testing network latency and bandwidth to", ip)
-            print(test_network_latency(ip))
-            print(test_bandwidth(ip))
+        for ip, az_name in zip(az_ips, az_names):
+            network_latency = test_network_latency(ip)
+            bandwidth = test_bandwidth(ip)
+
+            write_to_dynamodb(az_name, network_latency, bandwidth)
