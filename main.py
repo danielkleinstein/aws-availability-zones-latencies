@@ -148,13 +148,13 @@ def destroy_terraform() -> None:
 
 def main() -> None:
     """Run the main logic."""
-    # regions = all_regions()
+    regions = all_regions()
 
-    # with open('regions.pickle', 'wb') as regions_pickle_file:
-    #     pickle.dump(regions, regions_pickle_file)
+    with open('regions.pickle', 'wb') as regions_pickle_file:
+        pickle.dump(regions, regions_pickle_file)
 
-    with open('regions.pickle', 'rb') as regions_pickle_file:
-        regions: List[AwsRegion] = pickle.load(regions_pickle_file)  # nosec (remove bandit warning)
+    # with open('regions.pickle', 'rb') as regions_pickle_file:
+    #     regions: List[AwsRegion] = pickle.load(regions_pickle_file)  # nosec (remove bandit warning)
 
     terraform_data: Dict[str, List[TerraformRegionData]] = {}
     for region in regions:
