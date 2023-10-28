@@ -1,6 +1,7 @@
 """Template script to be used as user-data for EC2 instances."""
 
 import boto3
+import json
 import subprocess
 import re
 from typing import List
@@ -18,17 +19,25 @@ with open('/region', encoding='utf-8') as region_file:
     REGION_NAME = region_file.read().strip()
 
 
-# def process_az(az):
-#     response = table.get_item(
-#         Key={
-#             'AZ': az
-#         }
-#     )
+def test_bandwidth(server_ip: str, port: int = 5201) -> float:
+    """Test network bandwidth to a host."""
+    command = ["iperf3", "-c", server_ip, "-p", str(port), "-J"]
+    result = subprocess.run(command, capture_output=True, text=True)
 
-#     ip = response['Item']['IP']
+    if result.returncode != 0:
+        raise ValueError(f"Error running iperf3: {result.stderr}")
+
+    data = json.loads(result.stdout)
+    bandwidth_bps = data["end"]["sum_received"]["bits_per_second"]
+
+    # Convert to Gb/s
+    bandwidth_gbps = bandwidth_bps / (10**9)
+
+    return bandwidth_gbps
 
 
 def test_network_latency(hostname: str) -> float:
+    """Test network latency to a host."""
     # Run the ping command
     command = ["ping", "-c", "100", "-i", "0.1", hostname]
     result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
@@ -77,3 +86,4 @@ if __name__ == '__main__':
 
         for ip in az_ips:
             print(test_network_latency(ip))
+            print(test_bandwidth(ip))

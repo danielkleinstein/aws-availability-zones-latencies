@@ -16,13 +16,13 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
               #!/bin/bash
               echo "${aws_sqs_queue.sqs_queue_REGION_AZ_REPLACE_ME.url}" > /sqs-queue
               echo "${aws_dynamodb_table.ec2_instance_metrics.name}" > /dynamodb-table
-              echo "REGION_REPLACE_ME" > /region
+              echo "REGION_NAME_REPLACE_ME" > /region
 
               chmod 777 /sqs-queue /dynamodb-table /region
               apt update -y
               apt install iperf3 python3-pip -y
 
-              iperf -s &
+              iperf3 -s &
 
               su - ubuntu -c "pip3 install boto3"
               su - ubuntu -c "git clone https://github.com/danielkleinstein/aws-availability-zones-latencies.git repo"
