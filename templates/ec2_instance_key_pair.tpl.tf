@@ -20,6 +20,6 @@ resource "aws_key_pair" "development_server_key_pair_REGION_ALIAS_REPLACE_ME" {
   provider = aws.REGION_ALIAS_REPLACE_ME
 
   provisioner "local-exec" {
-    command = "chmod 400 development_server_key_REGION_ALIAS_REPLACE_ME.pem"
+    command = "sleep 2 && chmod 400 development_server_key_REGION_ALIAS_REPLACE_ME.pem"
   }
 }

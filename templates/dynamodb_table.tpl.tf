@@ -19,7 +19,7 @@ resource "aws_dynamodb_table" "ec2_instance_metrics" {
 }
 
 resource "aws_dynamodb_table" "ec2_instance_instructions" {
-  name         = "EC2InstanceMetrics"
+  name         = "EC2InstanceInstructions"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "availability_zone"
 

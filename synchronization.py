@@ -1,4 +1,4 @@
-"""Synchronization between tests"""
+"""Synchronization between tests."""
 
 import boto3
 import subprocess  # nosec (remove bandit warning)
@@ -38,7 +38,7 @@ def get_terraform_output(output_name: str) -> str:
             sys.stderr.write(stderr.decode('utf-8'))
             raise ValueError(f'terraform output {output_name} failed.')
 
-        return stdout.decode('utf-8').strip()
+        return stdout.decode('utf-8').strip().strip('"')
 
 
 def write_azs_to_dynamodb(region: AwsRegion) -> None:
@@ -52,13 +52,19 @@ def write_azs_to_dynamodb(region: AwsRegion) -> None:
         if from_az not in az_pairs_dict:
             az_pairs_dict[from_az] = [from_az]  # Make sure each AZ also has itself
 
-        az_pairs_dict[from_az].append(az_pair[1].name)
+        to_az = az_pair[1].name
+        # This if is necessary for an edge case where an AZ is not a "from"
+        # AZ for any other AZs
+        if to_az not in az_pairs_dict:
+            az_pairs_dict[to_az] = [to_az]
+
+        az_pairs_dict[from_az].append(to_az)
 
     dynamodb = boto3.resource('dynamodb',
-                              region_name="ap-south-2"  # TODO!
+                              region_name='ap-south-2'  # TODO!
                               )
 
-    table = dynamodb.Table(get_terraform_output("ec2_instance_instructions_table_name"))
+    table = dynamodb.Table(get_terraform_output('ec2_instance_instructions_table_name'))
 
     keys = list(az_pairs_dict.keys())
     for idx, az in enumerate(keys):
@@ -67,12 +73,12 @@ def write_azs_to_dynamodb(region: AwsRegion) -> None:
         else:
             next_az = 'DONE'
 
-        azs = ','.join(':'.join([get_terraform_output(f'instance_ip_ap-{to_az}'), to_az]) for to_az in az_pairs_dict[az])
+        azs = ','.join(':'.join([get_terraform_output(f'instance_ip_{to_az}'), to_az]) for to_az in az_pairs_dict[az])
 
         item = {
             'availability_zone': az,
             'azs': azs,
-            'next_az_queue': get_terraform_output(f'az_sqs_queue-{next_az}')
+            'next_az_queue': '' if next_az == 'DONE' else get_terraform_output(f'az_sqs_queue-{next_az}')
         }
 
         table.put_item(Item=item)

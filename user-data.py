@@ -29,14 +29,14 @@ with open('/az', encoding='utf-8') as region_file:
 
 def test_bandwidth(server_ip: str, port: int = 5201) -> Decimal:
     """Test network bandwidth to a host."""
-    command = ["iperf3", "-c", server_ip, "-p", str(port), "-J"]
+    command = ['iperf3', '-c', server_ip, '-p', str(port), '-J']
     result = subprocess.run(command, capture_output=True, text=True)
 
     if result.returncode != 0:
-        raise ValueError(f"Error running iperf3: {result.stderr}")
+        raise ValueError(f'Error running iperf3: {result.stderr}')
 
     data = json.loads(result.stdout)
-    bandwidth_bps = data["end"]["sum_received"]["bits_per_second"]
+    bandwidth_bps = data['end']['sum_received']['bits_per_second']
 
     # Convert to Gb/s
     bandwidth_gbps = Decimal(bandwidth_bps) / Decimal(10**9)
@@ -47,10 +47,10 @@ def test_bandwidth(server_ip: str, port: int = 5201) -> Decimal:
 def test_network_latency(hostname: str) -> Decimal:
     """Test network latency to a host."""
     # Run the ping command
-    command = ["ping", "-c", "100", "-i", "0.1", hostname]
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
+    command = ['ping', '-c', '100', '-i', '0.1', hostname]
+    result = subprocess.run(command, stdout=subprocess.PIPE, text=True, check=True)  # nosec (remove bandit warning)
 
-    time_values = re.findall(r"time=([\d.]+)", result.stdout)
+    time_values = re.findall(r'time=([\d.]+)', result.stdout)
     avg_time = sum(map(Decimal, time_values)) / Decimal(len(time_values))
 
     return avg_time
@@ -83,7 +83,7 @@ def read_from_dynamodb_table() -> Tuple[List[str], List[str], str]:
     table = dynamodb.Table(READ_TABLE_NAME)
 
     response = table.query(
-        KeyConditionExpression=boto3.dynamodb.conditions.Key('PrimaryKey').eq(AZ_NAME)
+        KeyConditionExpression=boto3.dynamodb.conditions.Key('availability_zone').eq(AZ_NAME)
     )
 
     azs = response.get('Items')[0].get('azs').split(',')
