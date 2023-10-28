@@ -130,7 +130,7 @@ def generate_terraform_file(template_str: str,
 def run_terraform() -> None:
     """Run terraform."""
     with subprocess.Popen(['terraform', 'init'],  # nosec (remove bandit warning)
-                          cwd="tf", stdout=subprocess.PIPE) as process:
+                          cwd="tf", stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         _, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write(stderr.decode('utf-8'))
@@ -139,7 +139,7 @@ def run_terraform() -> None:
     sys.stdout.write("Terraform init successful.\n")
 
     with subprocess.Popen(['terraform', 'apply', '-auto-approve'],  # nosec (remove bandit warning)
-                          cwd="tf", stdout=subprocess.PIPE) as process:
+                          cwd="tf", stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         _, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write(stderr.decode('utf-8'))
@@ -151,7 +151,7 @@ def run_terraform() -> None:
 def destroy_terraform() -> None:
     """Run terraform."""
     with subprocess.Popen(['terraform', 'destroy', '-auto-approve'],  # nosec (remove bandit warning)
-                          cwd="tf", stdout=subprocess.PIPE) as process:
+                          cwd="tf", stdout=subprocess.PIPE, stderr=subprocess.PIPE) as process:
         _, stderr = process.communicate()
         if process.returncode != 0:
             sys.stderr.write(stderr.decode('utf-8'))

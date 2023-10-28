@@ -15,6 +15,9 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
   user_data = <<-EOF
               #!/bin/bash
               echo "${aws_sqs_queue.sqs_queue_REGION_AZ_REPLACE_ME.url}" > /sqs-queue
+              echo "${aws_dynamodb_table.ec2_instance_metrics.name}" > /dynamodb-table
+
+              chmod 777 /sqs-queue /dynamodb-table
               sudo apt update -y
               sudo apt install iperf3 curl unzip -y
 
