@@ -4,8 +4,7 @@ import boto3
 from typing import List
 
 
-sqs = boto3.client('sqs')
-dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+# dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 
 with open('/sqs-queue', encoding='utf-8') as sqs_queue_file:
     QUEUE_URL = sqs_queue_file.read().strip()
@@ -25,13 +24,15 @@ with open('/dynamodb-table', encoding='utf-8') as dynamodb_table_file:
 
 def poll_sqs_queue() -> List[str]:
     """Poll the SQS queue for messages."""
-    sqs = boto3.client('sqs')
+    sqs = boto3.client('sqs',
+                       region_name="us-east-1"  # Arbitrary - the queue is in the same region as the instance
+                       )
 
     while True:
         messages = sqs.receive_message(
             QueueUrl=QUEUE_URL,
             MaxNumberOfMessages=1,
-            WaitTimeSeconds=20
+            WaitTimeSeconds=20,
         )
 
         if 'Messages' in messages:
