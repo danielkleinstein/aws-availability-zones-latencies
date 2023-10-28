@@ -150,8 +150,6 @@ def main() -> None:
     with open('regions.pickle', 'rb') as regions_pickle_file:
         regions: List[AwsRegion] = pickle.load(regions_pickle_file)  # nosec (remove bandit warning)
 
-    regions = regions[:1]
-
     terraform_data: Dict[str, List[TerraformRegionData]] = {}
     for region in regions:
         terraform_data[region.name] = []

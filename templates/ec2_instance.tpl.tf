@@ -27,9 +27,6 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
 
               iperf3 -s &
 
-              mkdir /user-data-output
-              chmod 777 /user-data-output
-
               su - ubuntu -c "pip3 install boto3"
               su - ubuntu -c "git clone https://github.com/danielkleinstein/aws-availability-zones-latencies.git repo"
               su - ubuntu -c "cd repo && python3 user-data.py > log.txt 2>&1"

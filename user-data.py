@@ -59,7 +59,7 @@ def test_network_latency(hostname: str) -> Decimal:
 def write_to_dynamodb(az_name: str, network_latency: Decimal, bandwidth: Decimal) -> None:
     """Write to DynamoDB."""
     dynamodb = boto3.resource('dynamodb',
-                              region_name=REGION_NAME  # Arbitrary - the table is in the same region as the instance
+                              region_name='us-east-1'  # Arbitrary - the table is in the same region as the instance
                               )
 
     table = dynamodb.Table(WRITE_TABLE_NAME)
@@ -77,7 +77,7 @@ def write_to_dynamodb(az_name: str, network_latency: Decimal, bandwidth: Decimal
 def read_from_dynamodb_table() -> Tuple[List[str], List[str], str]:
     """Read from the DynamoDB table."""
     dynamodb = boto3.resource('dynamodb',
-                              region_name=REGION_NAME  # Arbitrary - the table is in the same region as the instance
+                              region_name='us-east-1'
                               )
 
     table = dynamodb.Table(READ_TABLE_NAME)
@@ -109,7 +109,7 @@ def trigger_next_az(next_az_queue: str) -> None:
 def trigger_done() -> None:
     """Tell the control queue the region is done."""
     sqs = boto3.client('sqs',
-                       region_name=REGION_NAME
+                       region_name='us-east-1'
                        )
     sqs.send_message(
         QueueUrl=CONTROL_QUEUE_URL,

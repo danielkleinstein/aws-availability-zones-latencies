@@ -15,7 +15,7 @@ resource "aws_dynamodb_table" "ec2_instance_metrics" {
   }
 
   # TODO - change to us-east-1
-  provider = aws.ap_south_2
+  provider = aws.us_east_1
 }
 
 resource "aws_dynamodb_table" "ec2_instance_instructions" {
@@ -29,5 +29,5 @@ resource "aws_dynamodb_table" "ec2_instance_instructions" {
   }
 
   # TODO - change to us-east-1
-  provider = aws.ap_south_2
+  provider = aws.us_east_1
 }

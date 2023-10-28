@@ -41,7 +41,7 @@ def get_terraform_output(output_name: str) -> str:
         return stdout.decode('utf-8').strip().strip('"')
 
 
-def write_azs_to_dynamodb(region: AwsRegion) -> None:
+def write_azs_to_dynamodb(region: AwsRegion) -> str:
     """Write AZs to DynamoDB."""
     az_pairs = region.pairs()
 
@@ -61,7 +61,7 @@ def write_azs_to_dynamodb(region: AwsRegion) -> None:
         az_pairs_dict[from_az].append(to_az)
 
     dynamodb = boto3.resource('dynamodb',
-                              region_name='ap-south-2'  # TODO!
+                              region_name='us-east-1'  # TODO!
                               )
 
     table = dynamodb.Table(get_terraform_output('ec2_instance_instructions_table_name'))
@@ -78,7 +78,18 @@ def write_azs_to_dynamodb(region: AwsRegion) -> None:
         item = {
             'availability_zone': az,
             'azs': azs,
-            'next_az_queue': '' if next_az == 'DONE' else get_terraform_output(f'az_sqs_queue-{next_az}')
+            'next_az_queue': next_az if next_az == 'DONE' else get_terraform_output(f'az_sqs_queue-{next_az}')
         }
 
         table.put_item(Item=item)
+
+    first_az = keys[0]
+    # Trigger "Go" command for the first AZ
+    sqs = boto3.client('sqs',
+                       region_name='us-east-1'
+                       )
+
+    sqs.send_message(
+        QueueUrl=get_terraform_output(f'az_sqs_queue-{first_az}'),
+        MessageBody='Go'
+    )
