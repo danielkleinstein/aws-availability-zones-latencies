@@ -10,12 +10,16 @@ resource "aws_instance" "ec2_instance_REGION_AZ_REPLACE_ME" {
     aws_security_group.allow_iperf3_traffic_REGION_ALIAS_REPLACE_ME.id,
     aws_security_group.allow_ping_traffic_REGION_ALIAS_REPLACE_ME.id
   ]
+  iam_instance_profile = aws_iam_instance_profile.ec2_instance_iam_profile.name
 
   user_data = <<-EOF
               #!/bin/bash
-              echo "${aws_sqs_queue.sqs_queue_REGION_ALIAS_REPLACE_ME.url}" > /sqs-queue
+              echo "${aws_sqs_queue.sqs_queue_REGION_AZ_REPLACE_ME.url}" > /sqs-queue
               sudo apt update -y
-              sudo apt install iperf3 -y
+              sudo apt install iperf3 curl unzip -y
+
+              # Install AWS CLI
+              su - ubuntu -c "curl 'https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip' -o 'awscliv2.zip' && unzip awscliv2.zip && sudo ./aws/install || true"
               EOF
 
   root_block_device {
